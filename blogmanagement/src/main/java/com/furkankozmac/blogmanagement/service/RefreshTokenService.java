@@ -3,34 +3,50 @@ package com.furkankozmac.blogmanagement.service;
 import com.furkankozmac.blogmanagement.entity.RefreshToken;
 import com.furkankozmac.blogmanagement.repository.RefreshTokenRepository;
 import com.furkankozmac.blogmanagement.repository.UserRepository;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class RefreshTokenService {
-    @Value("${jwt.refreshExpirationMs}")
+
+    @Value("${jwt.refresh-expiration}")
     private Long refreshTokenDurationMs;
 
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserRepository userRepository;
 
-    public RefreshTokenService(RefreshTokenRepository repo, UserRepository userRepo) {
-        this.refreshTokenRepository = repo;
-        this.userRepository = userRepo;
+    public Optional<RefreshToken> findByToken(String token) {
+        return refreshTokenRepository.findByToken(token);
     }
 
     public RefreshToken createRefreshToken(Long userId) {
-        var token = new RefreshToken();
-        token.setUser(userRepository.findById(userId).get());
-        token.setExpiryDate(Instant.now().plusMillis(refreshTokenDurationMs));
-        token.setToken(UUID.randomUUID().toString());
-        return refreshTokenRepository.save(token);
+        RefreshToken refreshToken = RefreshToken.builder()
+                .user(userRepository.findById(userId).get())
+                .expiryDate(Instant.now().plusMillis(refreshTokenDurationMs))
+                .token(UUID.randomUUID().toString())
+                .build();
+
+        return refreshTokenRepository.save(refreshToken);
     }
 
-    public boolean isTokenExpired(RefreshToken token) {
-        return token.getExpiryDate().isBefore(Instant.now());
+    public RefreshToken verifyExpiration(RefreshToken token) {
+        if (token.getExpiryDate().compareTo(Instant.now()) < 0) {
+            refreshTokenRepository.delete(token);
+            throw new RuntimeException("Refresh token was expired. Please make a new signin request");
+        }
+        return token;
+    }
+
+    @Transactional
+    public void deleteByToken(String token) {
+        refreshTokenRepository.findByToken(token)
+                .ifPresent(refreshTokenRepository::delete);
     }
 }

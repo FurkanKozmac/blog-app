@@ -1,75 +1,47 @@
 package com.furkankozmac.blogmanagement.controller;
 
-import com.furkankozmac.blogmanagement.entity.Role;
-import org.springframework.beans.factory.annotation.Autowired;
 import com.furkankozmac.blogmanagement.config.JwtUtil;
+import com.furkankozmac.blogmanagement.dto.*;
 import com.furkankozmac.blogmanagement.entity.RefreshToken;
+import com.furkankozmac.blogmanagement.entity.Role;
 import com.furkankozmac.blogmanagement.entity.User;
 import com.furkankozmac.blogmanagement.repository.RefreshTokenRepository;
 import com.furkankozmac.blogmanagement.repository.UserRepository;
 import com.furkankozmac.blogmanagement.service.RefreshTokenService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.*;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
-
 @RestController
 @RequestMapping("/api/auth")
+@RequiredArgsConstructor // Generates constructor for final fields
 public class AuthController {
 
-    @Autowired
-    AuthenticationManager authenticationManager;
-    @Autowired
-    UserRepository userRepository;
-    @Autowired
-    RefreshTokenRepository refreshTokenRepository;
-    @Autowired
-    RefreshTokenService refreshTokenService;
+    private final AuthenticationManager authenticationManager;
+    private final UserRepository userRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final RefreshTokenService refreshTokenService;
+    private final PasswordEncoder encoder;
+    private final JwtUtil jwtUtils;
 
-    @Autowired
-    PasswordEncoder encoder;
-    @Autowired
-    JwtUtil jwtUtils;
-
-    @PostMapping("/signin")
-    public Map<String, String> authenticateUser(@RequestBody User user) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword())
-        );
-
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-
-        String accessToken = jwtUtils.generateToken(userDetails.getUsername());
-
-        User dbUser = userRepository
-                .findByUsername(userDetails.getUsername())
-                .orElseThrow();
-
-        RefreshToken refreshToken = refreshTokenService.createRefreshToken(dbUser.getId());
-
-        return Map.of(
-                "accessToken", accessToken,
-                "refreshToken", refreshToken.getToken()
-        );
-    }
-
+    // 1. SIGN UP
     @PostMapping("/signup")
-    public ResponseEntity<?> registerUser(@RequestBody User user) {
-
-        if (userRepository.existsByUsername(user.getUsername())) {
+    public ResponseEntity<?> registerUser(@RequestBody RegisterRequest request) {
+        if (userRepository.existsByUsername(request.getUsername())) {
             return ResponseEntity
                     .badRequest()
                     .body("Error: Username is already taken!");
         }
 
         User newUser = User.builder()
-                .username(user.getUsername())
-                .password(encoder.encode(user.getPassword()))
-                .role(Role.ROLE_USER)
+                .username(request.getUsername())
+                .password(encoder.encode(request.getPassword()))
+                .role(Role.ROLE_USER) // Assuming Enum is USER, not ROLE_USER
                 .build();
 
         userRepository.save(newUser);
@@ -77,35 +49,52 @@ public class AuthController {
         return ResponseEntity.ok("User registered successfully!");
     }
 
+    // 2. SIGN IN
+    @PostMapping("/signin")
+    public ResponseEntity<?> authenticateUser(@RequestBody LoginRequest request) {
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
+        );
 
-    @PostMapping("/refresh")
-    public ResponseEntity<?> refreshToken(@RequestBody Map<String, String> payload) {
-        String requestToken = payload.get("refreshToken");
-        return refreshTokenRepository.findByToken(requestToken)
-                .map(token -> {
-                    if (refreshTokenService.isTokenExpired(token)) {
-                        refreshTokenRepository.delete(token);
-                        return ResponseEntity.badRequest().body("Refresh token expired. Please login again.");
-                    }
-                    String newJwt = jwtUtils.generateToken(token.getUser().getUsername());
-                    return ResponseEntity.ok(Map.of("token", newJwt));
-                })
-                .orElse(ResponseEntity.badRequest().body("Invalid refresh token."));
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+
+        // Generate Access Token
+        String accessToken = jwtUtils.generateToken(userDetails.getUsername());
+
+        // Generate Refresh Token
+        // We find the user ID to link the token
+        User user = userRepository.findByUsername(userDetails.getUsername()).orElseThrow();
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
+
+        return ResponseEntity.ok(new JwtResponse(accessToken, refreshToken.getToken()));
     }
 
-    @PostMapping("/logout")
-    public ResponseEntity<?> logoutUser(@RequestBody Map<String, String> payload) {
-        String requestToken = payload.get("refreshToken");
+    // 3. REFRESH TOKEN
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refreshToken(@RequestBody TokenRefreshRequest request) {
+        String requestToken = request.getRefreshToken();
 
-        if (requestToken == null || requestToken.isBlank()) {
-            return ResponseEntity.badRequest().body("Refresh token is required.");
-        }
-
-        return refreshTokenRepository.findByToken(requestToken)
-                .map(token -> {
-                    refreshTokenRepository.delete(token);
-                    return ResponseEntity.ok("Logged out successfully.");
+        return refreshTokenService.findByToken(requestToken)
+                .map(refreshTokenService::verifyExpiration) // This throws exception if expired
+                .map(RefreshToken::getUser)
+                .map(user -> {
+                    String newAccessToken = jwtUtils.generateToken(user.getUsername());
+                    return ResponseEntity.ok(new JwtResponse(newAccessToken, requestToken));
                 })
-                .orElse(ResponseEntity.badRequest().body("Invalid refresh token."));
+                .orElseThrow(() -> new RuntimeException("Refresh token is not in database!"));
+    }
+
+    // 4. LOGOUT
+    @PostMapping("/logout")
+    public ResponseEntity<?> logoutUser(@RequestBody TokenRefreshRequest request) {
+        String requestToken = request.getRefreshToken();
+
+        // We delete the specific refresh token provided by the client
+        return refreshTokenService.findByToken(requestToken)
+                .map(token -> {
+                    refreshTokenService.deleteByToken(token.getToken());
+                    return ResponseEntity.ok("Log out successful!");
+                })
+                .orElseThrow(() -> new RuntimeException("Refresh token not found"));
     }
 }

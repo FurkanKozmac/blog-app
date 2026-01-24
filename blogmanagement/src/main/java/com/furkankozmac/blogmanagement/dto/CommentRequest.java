@@ -1,0 +1,9 @@
+package com.furkankozmac.blogmanagement.dto;
+
+import lombok.Data;
+
+@Data
+public class CommentRequest {
+    private Long postId;
+    private String content;
+}

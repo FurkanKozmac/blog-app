@@ -1,0 +1,86 @@
+package com.furkankozmac.blogmanagement.service;
+
+import com.furkankozmac.blogmanagement.dto.PostRequest;
+import com.furkankozmac.blogmanagement.dto.PostResponse;
+import com.furkankozmac.blogmanagement.entity.Post;
+import com.furkankozmac.blogmanagement.entity.User;
+import com.furkankozmac.blogmanagement.repository.PostRepository;
+import com.furkankozmac.blogmanagement.repository.UserRepository;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class PostService {
+
+    private final PostRepository postRepository;
+    private final UserRepository userRepository;
+
+    public PostResponse createPost(PostRequest postRequest, String username) {
+        User user = userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("Username not found"));
+
+        Post post = Post.builder()
+                .title(postRequest.getTitle())
+                .content(postRequest.getContent())
+                .user(user)
+                .build();
+
+        Post savedPost = postRepository.save(post);
+        return mapToDto(savedPost);
+    }
+
+    public List<PostResponse> getAllPosts() {
+        return postRepository.findAll().stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+
+    public PostResponse getPostById(Long id) {
+        Post post = postRepository.findById(id).orElseThrow(() -> new RuntimeException("Post not found"));
+
+        return mapToDto(post);
+    }
+
+    @Transactional
+    public void deletePost(Long id, String currentUsername) {
+        Post post = postRepository.findById(id).orElseThrow(() -> new RuntimeException("Post not found"));
+
+        if (!post.getUser().getUsername().equals(currentUsername)) {
+            throw new RuntimeException("You are not authorized to delete this post");
+        }
+
+        postRepository.delete(post);
+    }
+
+    @Transactional
+    public PostResponse updatePost(Long id, String currentUsername, PostRequest postRequest) {
+        Post post = postRepository.findById(id).orElseThrow(() -> new RuntimeException("Post not found"));
+
+        if (!post.getUser().getUsername().equals(currentUsername)) {
+            throw new RuntimeException("You are not authorized to update this post");
+        }
+
+        post.setTitle(postRequest.getTitle());
+        post.setContent(postRequest.getContent());
+
+        Post updatedPost = postRepository.save(post);
+        return  mapToDto(updatedPost);
+
+    }
+
+    private PostResponse mapToDto(Post post) {
+        return PostResponse.builder()
+                .id(post.getId())
+                .title(post.getTitle())
+                .content(post.getContent())
+                .authorName(post.getUser().getUsername())
+                .createdAt(post.getCreatedAt().toInstant(ZoneOffset.UTC))
+                .build();
+    }
+}

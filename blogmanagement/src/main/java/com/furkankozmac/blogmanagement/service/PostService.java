@@ -3,14 +3,16 @@ package com.furkankozmac.blogmanagement.service;
 import com.furkankozmac.blogmanagement.dto.PostRequest;
 import com.furkankozmac.blogmanagement.dto.PostResponse;
 import com.furkankozmac.blogmanagement.entity.Post;
+import com.furkankozmac.blogmanagement.entity.Role;
 import com.furkankozmac.blogmanagement.entity.User;
 import com.furkankozmac.blogmanagement.repository.PostRepository;
 import com.furkankozmac.blogmanagement.repository.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -42,29 +44,21 @@ public class PostService {
     }
 
     public PostResponse getPostById(Long id) {
-        Post post = postRepository.findById(id).orElseThrow(() -> new RuntimeException("Post not found"));
+        Post post = postRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Post not found"));
 
         return mapToDto(post);
     }
 
     @Transactional
     public void deletePost(Long id, String currentUsername) {
-        Post post = postRepository.findById(id).orElseThrow(() -> new RuntimeException("Post not found"));
-
-        if (!post.getUser().getUsername().equals(currentUsername)) {
-            throw new RuntimeException("You are not authorized to delete this post");
-        }
+        Post post = findPostByIdAndCheckOwner(id, currentUsername);
 
         postRepository.delete(post);
     }
 
     @Transactional
     public PostResponse updatePost(Long id, String currentUsername, PostRequest postRequest) {
-        Post post = postRepository.findById(id).orElseThrow(() -> new RuntimeException("Post not found"));
-
-        if (!post.getUser().getUsername().equals(currentUsername)) {
-            throw new RuntimeException("You are not authorized to update this post");
-        }
+        Post post = findPostByIdAndCheckOwner(id, currentUsername);
 
         post.setTitle(postRequest.getTitle());
         post.setContent(postRequest.getContent());
@@ -72,6 +66,23 @@ public class PostService {
         Post updatedPost = postRepository.save(post);
         return  mapToDto(updatedPost);
 
+    }
+
+    private Post findPostByIdAndCheckOwner(Long id, String username) {
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Post not found"));
+
+        User currentUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+
+        boolean isOwner = post.getUser().getUsername().equals(username);
+        boolean isAdmin = currentUser.getRole() == Role.ROLE_ADMIN;
+
+        if (!isOwner && !isAdmin) {
+            throw new AccessDeniedException("You are not authorized to perform this action");
+        }
+
+        return post;
     }
 
     private PostResponse mapToDto(Post post) {

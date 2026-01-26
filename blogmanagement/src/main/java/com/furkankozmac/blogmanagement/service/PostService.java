@@ -5,6 +5,7 @@ import com.furkankozmac.blogmanagement.dto.PostResponse;
 import com.furkankozmac.blogmanagement.entity.Post;
 import com.furkankozmac.blogmanagement.entity.Role;
 import com.furkankozmac.blogmanagement.entity.User;
+import com.furkankozmac.blogmanagement.mapper.PostMapper;
 import com.furkankozmac.blogmanagement.repository.PostRepository;
 import com.furkankozmac.blogmanagement.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -13,9 +14,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
-import java.time.ZoneOffset;
 import java.util.List;
-import java.util.stream.Collectors;
+
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +23,7 @@ public class PostService {
 
     private final PostRepository postRepository;
     private final UserRepository userRepository;
+    private final PostMapper postMapper;
 
     public PostResponse createPost(PostRequest postRequest, String username) {
         User user = userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("Username not found"));
@@ -34,19 +35,18 @@ public class PostService {
                 .build();
 
         Post savedPost = postRepository.save(post);
-        return mapToDto(savedPost);
+        return postMapper.toPostResponse(savedPost);
     }
 
     public List<PostResponse> getAllPosts() {
-        return postRepository.findAll().stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+        List<Post> posts = postRepository.findAll();
+        return postMapper.toResponseList(posts);
     }
 
     public PostResponse getPostById(Long id) {
         Post post = postRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Post not found"));
 
-        return mapToDto(post);
+        return postMapper.toPostResponse(post);
     }
 
     @Transactional
@@ -64,7 +64,7 @@ public class PostService {
         post.setContent(postRequest.getContent());
 
         Post updatedPost = postRepository.save(post);
-        return  mapToDto(updatedPost);
+        return  postMapper.toPostResponse(updatedPost);
 
     }
 
@@ -85,13 +85,5 @@ public class PostService {
         return post;
     }
 
-    private PostResponse mapToDto(Post post) {
-        return PostResponse.builder()
-                .id(post.getId())
-                .title(post.getTitle())
-                .content(post.getContent())
-                .authorName(post.getUser().getUsername())
-                .createdAt(post.getCreatedAt().toInstant(ZoneOffset.UTC))
-                .build();
-    }
+
 }

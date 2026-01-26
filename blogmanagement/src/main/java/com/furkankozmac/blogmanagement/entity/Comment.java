@@ -23,7 +23,7 @@ public class Comment {
     @Column(unique = true, nullable = false)
     private Instant createdAt;
 
-    @Column(nullable = false,  length = 255)
+    @Column(nullable = false)
     private String content;
 
     @ManyToOne(fetch = FetchType.LAZY)

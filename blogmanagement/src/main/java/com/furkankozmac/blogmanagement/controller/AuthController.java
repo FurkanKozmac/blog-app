@@ -8,6 +8,7 @@ import com.furkankozmac.blogmanagement.entity.User;
 import com.furkankozmac.blogmanagement.repository.RefreshTokenRepository;
 import com.furkankozmac.blogmanagement.repository.UserRepository;
 import com.furkankozmac.blogmanagement.service.RefreshTokenService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -31,7 +32,7 @@ public class AuthController {
 
     // 1. SIGN UP
     @PostMapping("/signup")
-    public ResponseEntity<?> registerUser(@RequestBody RegisterRequest request) {
+    public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
             return ResponseEntity
                     .badRequest()
@@ -51,7 +52,7 @@ public class AuthController {
 
     // 2. SIGN IN
     @PostMapping("/signin")
-    public ResponseEntity<?> authenticateUser(@RequestBody LoginRequest request) {
+    public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest request) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
         );

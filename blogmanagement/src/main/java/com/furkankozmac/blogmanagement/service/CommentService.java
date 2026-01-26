@@ -6,6 +6,7 @@ import com.furkankozmac.blogmanagement.entity.Comment;
 import com.furkankozmac.blogmanagement.entity.Post;
 import com.furkankozmac.blogmanagement.entity.Role;
 import com.furkankozmac.blogmanagement.entity.User;
+import com.furkankozmac.blogmanagement.mapper.CommentMapper;
 import com.furkankozmac.blogmanagement.repository.CommentRepository;
 import com.furkankozmac.blogmanagement.repository.PostRepository;
 import com.furkankozmac.blogmanagement.repository.UserRepository;
@@ -16,7 +17,6 @@ import jakarta.persistence.EntityNotFoundException;
 import org.springframework.security.access.AccessDeniedException;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +25,7 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final UserRepository userRepository;
     private final PostRepository postRepository;
+    private final CommentMapper commentMapper;
 
     @Transactional
     public CommentResponse createComment(CommentRequest commentRequest, String username) {
@@ -39,7 +40,7 @@ public class CommentService {
 
         Comment savedComment = commentRepository.save(comment);
 
-        return mapToDto(savedComment);
+        return commentMapper.toCommentResponse(savedComment);
     }
 
     @Transactional
@@ -56,15 +57,13 @@ public class CommentService {
         comment.setContent(commentRequest.getContent());
 
         Comment savedComment = commentRepository.save(comment);
-        return mapToDto(savedComment);
+        return commentMapper.toCommentResponse(savedComment);
     }
 
     public List<CommentResponse> getCommentsByPostId(Long postId) {
         List<Comment> comments = commentRepository.findByPostId(postId);
 
-        return comments.stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+        return commentMapper.toResponseList(comments);
     }
 
     private Comment findCommentByIdAndCheckOwner(Long commentId, String username) {
@@ -82,16 +81,6 @@ public class CommentService {
         }
 
         return comment;
-    }
-
-    private CommentResponse mapToDto(Comment comment) {
-        return CommentResponse.builder()
-                .id(comment.getId())
-                .content(comment.getContent())
-                .username(comment.getUser().getUsername())
-                .createdAt(comment.getCreatedAt())
-                .postId(comment.getPost().getId())
-                .build();
     }
 
 }

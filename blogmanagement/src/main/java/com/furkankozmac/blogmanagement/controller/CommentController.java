@@ -3,6 +3,7 @@ package com.furkankozmac.blogmanagement.controller;
 import com.furkankozmac.blogmanagement.dto.CommentRequest;
 import com.furkankozmac.blogmanagement.dto.CommentResponse;
 import com.furkankozmac.blogmanagement.service.CommentService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +20,7 @@ public class CommentController {
     private final CommentService commentService;
 
     @PostMapping
-    public ResponseEntity<CommentResponse> createComment(@RequestBody CommentRequest request){
+    public ResponseEntity<CommentResponse> createComment(@Valid @RequestBody CommentRequest request){
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
 
         return new ResponseEntity<>(commentService.createComment(request,username), HttpStatus.CREATED);
@@ -31,7 +32,7 @@ public class CommentController {
     }
 
     @PutMapping("/{commentId}")
-    public ResponseEntity<CommentResponse> updateComment(@PathVariable Long commentId, @RequestBody CommentRequest request) {
+    public ResponseEntity<CommentResponse> updateComment(@PathVariable Long commentId,@Valid @RequestBody CommentRequest request) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         return ResponseEntity.ok(commentService.updateComment(commentId, username, request));
     }

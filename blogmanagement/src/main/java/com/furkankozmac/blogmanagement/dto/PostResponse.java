@@ -13,4 +13,5 @@ public class PostResponse {
     private String content;
     private String authorName;
     private Instant createdAt;
+    private String categoryName;
 }

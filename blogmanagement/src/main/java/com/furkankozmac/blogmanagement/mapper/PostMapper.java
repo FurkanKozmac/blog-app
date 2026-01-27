@@ -18,6 +18,7 @@ public class PostMapper {
                 .content(post.getContent())
                 .authorName(post.getUser().getUsername())
                 .createdAt(post.getCreatedAt().toInstant(ZoneOffset.UTC))
+                .categoryName(post.getCategory() != null ? post.getCategory().getName() : "General")
                 .build();
     }
 

@@ -67,4 +67,11 @@ public class PostController {
 
         return ResponseEntity.ok(postService.updatePost(id, username, request));
     }
+
+    @GetMapping("/category/{categoryId}")
+    public ResponseEntity<Page<PostResponse>> getByCategory(
+            @PathVariable Long categoryId,
+            Pageable pageable) {
+        return ResponseEntity.ok(postService.getPostsByCategory(categoryId, pageable));
+    }
 }

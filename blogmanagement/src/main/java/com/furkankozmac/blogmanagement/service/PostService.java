@@ -2,10 +2,12 @@ package com.furkankozmac.blogmanagement.service;
 
 import com.furkankozmac.blogmanagement.dto.PostRequest;
 import com.furkankozmac.blogmanagement.dto.PostResponse;
+import com.furkankozmac.blogmanagement.entity.Category;
 import com.furkankozmac.blogmanagement.entity.Post;
 import com.furkankozmac.blogmanagement.entity.Role;
 import com.furkankozmac.blogmanagement.entity.User;
 import com.furkankozmac.blogmanagement.mapper.PostMapper;
+import com.furkankozmac.blogmanagement.repository.CategoryRepository;
 import com.furkankozmac.blogmanagement.repository.PostRepository;
 import com.furkankozmac.blogmanagement.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -26,18 +28,31 @@ public class PostService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final PostMapper postMapper;
+    private final CategoryRepository categoryRepository;
 
     public PostResponse createPost(PostRequest postRequest, String username) {
-        User user = userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("Username not found"));
+        User user = userRepository.findByUsername(username).orElseThrow(() -> new EntityNotFoundException("Username not found"));
+
+        Category category = null;
+        if (postRequest.getCategoryId() != null) {
+            category = categoryRepository.findById(postRequest.getCategoryId())
+                    .orElseThrow(() -> new EntityNotFoundException("Category not found"));
+        }
 
         Post post = Post.builder()
                 .title(postRequest.getTitle())
                 .content(postRequest.getContent())
                 .user(user)
+                .category(category)
                 .build();
 
         Post savedPost = postRepository.save(post);
         return postMapper.toPostResponse(savedPost);
+    }
+
+    public Page<PostResponse> getPostsByCategory(Long categoryId, Pageable pageable) {
+        return postRepository.findByCategoryId(categoryId, pageable)
+                .map(postMapper::toPostResponse);
     }
 
     public Page<PostResponse> getAllPosts(Pageable pageable) {

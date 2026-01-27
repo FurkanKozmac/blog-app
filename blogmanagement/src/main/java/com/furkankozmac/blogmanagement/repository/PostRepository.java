@@ -20,4 +20,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             String content,
             Pageable pageable
     );
+
+    @EntityGraph(attributePaths = {"user", "category"})
+    Page<Post> findByCategoryId(Long categoryId, Pageable pageable);
 }

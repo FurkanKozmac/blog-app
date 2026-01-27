@@ -14,4 +14,6 @@ public class PostRequest {
     @NotBlank(message = "Content cannot be blank!")
     @Size(min = 10, message = "Content must be at least 10 characters.")
     private String content;
+
+    private Long categoryId;
 }

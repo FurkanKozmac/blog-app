@@ -11,6 +11,8 @@ import com.furkankozmac.blogmanagement.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
@@ -38,9 +40,14 @@ public class PostService {
         return postMapper.toPostResponse(savedPost);
     }
 
-    public List<PostResponse> getAllPosts() {
-        List<Post> posts = postRepository.findAll();
-        return postMapper.toResponseList(posts);
+    public Page<PostResponse> getAllPosts(Pageable pageable) {
+        Page<Post> pageablePosts = postRepository.findAll(pageable);
+        return pageablePosts.map(postMapper::toPostResponse);
+    }
+
+    public Page<PostResponse> searchPosts(String query, Pageable pageable) {
+        return postRepository.findByTitleContainingIgnoreCaseOrContentContainingIgnoreCase(query, query, pageable)
+                .map(postMapper::toPostResponse);
     }
 
     public PostResponse getPostById(Long id) {

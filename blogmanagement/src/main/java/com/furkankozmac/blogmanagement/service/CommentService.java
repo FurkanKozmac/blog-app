@@ -12,6 +12,8 @@ import com.furkankozmac.blogmanagement.repository.PostRepository;
 import com.furkankozmac.blogmanagement.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.security.access.AccessDeniedException;
@@ -60,10 +62,10 @@ public class CommentService {
         return commentMapper.toCommentResponse(savedComment);
     }
 
-    public List<CommentResponse> getCommentsByPostId(Long postId) {
-        List<Comment> comments = commentRepository.findByPostId(postId);
+    public Page<CommentResponse> getCommentsByPostId(Long postId, Pageable pageable) {
+        Page<Comment> commentPage = commentRepository.findByPostId(postId,  pageable);
 
-        return commentMapper.toResponseList(comments);
+        return commentPage.map(commentMapper::toCommentResponse);
     }
 
     private Comment findCommentByIdAndCheckOwner(Long commentId, String username) {

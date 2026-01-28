@@ -3,6 +3,7 @@ package com.furkankozmac.blogmanagement.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
+import org.springframework.web.multipart.MultipartFile;
 
 @Data
 public class PostRequest {
@@ -16,4 +17,6 @@ public class PostRequest {
     private String content;
 
     private Long categoryId;
+
+    private MultipartFile image;
 }

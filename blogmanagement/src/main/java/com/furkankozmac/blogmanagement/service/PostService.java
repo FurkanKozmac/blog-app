@@ -17,6 +17,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -29,25 +30,25 @@ public class PostService {
     private final UserRepository userRepository;
     private final PostMapper postMapper;
     private final CategoryRepository categoryRepository;
+    private final FileService fileService;
 
-    public PostResponse createPost(PostRequest postRequest, String username) {
-        User user = userRepository.findByUsername(username).orElseThrow(() -> new EntityNotFoundException("Username not found"));
+    public PostResponse createPost(PostRequest postRequest, String username, MultipartFile image) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
-        Category category = null;
-        if (postRequest.getCategoryId() != null) {
-            category = categoryRepository.findById(postRequest.getCategoryId())
-                    .orElseThrow(() -> new EntityNotFoundException("Category not found"));
+        String imageName = null;
+        if (image != null && !image.isEmpty()) {
+            imageName = fileService.uploadImage(image);
         }
 
         Post post = Post.builder()
                 .title(postRequest.getTitle())
                 .content(postRequest.getContent())
                 .user(user)
-                .category(category)
+                .imageName(imageName)
                 .build();
 
-        Post savedPost = postRepository.save(post);
-        return postMapper.toPostResponse(savedPost);
+        return postMapper.toPostResponse(postRepository.save(post));
     }
 
     public Page<PostResponse> getPostsByCategory(Long categoryId, Pageable pageable) {

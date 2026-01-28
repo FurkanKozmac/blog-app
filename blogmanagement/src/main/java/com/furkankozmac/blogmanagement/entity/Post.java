@@ -44,4 +44,5 @@ public class Post {
     @JoinColumn(name = "category_id")
     private Category category;
 
+    private String imageName;
 }

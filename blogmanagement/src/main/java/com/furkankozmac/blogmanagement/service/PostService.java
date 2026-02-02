@@ -19,8 +19,6 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
-
 
 @Service
 @RequiredArgsConstructor
@@ -41,10 +39,17 @@ public class PostService {
             imageName = fileService.uploadImage(image);
         }
 
+        Category category = null;
+        if (postRequest.getCategoryId() != null) {
+            category = categoryRepository.findById(postRequest.getCategoryId())
+                    .orElseThrow(() -> new EntityNotFoundException("Category not found"));
+        }
+
         Post post = Post.builder()
                 .title(postRequest.getTitle())
                 .content(postRequest.getContent())
                 .user(user)
+                .category(category)
                 .imageName(imageName)
                 .build();
 

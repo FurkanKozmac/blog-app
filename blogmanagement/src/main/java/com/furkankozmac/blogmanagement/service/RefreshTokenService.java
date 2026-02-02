@@ -3,6 +3,7 @@ package com.furkankozmac.blogmanagement.service;
 import com.furkankozmac.blogmanagement.entity.RefreshToken;
 import com.furkankozmac.blogmanagement.repository.RefreshTokenRepository;
 import com.furkankozmac.blogmanagement.repository.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,11 +27,14 @@ public class RefreshTokenService {
         return refreshTokenRepository.findByToken(token);
     }
 
+    @Transactional
     public RefreshToken createRefreshToken(Long userId) {
+        refreshTokenRepository.deleteByUserId(userId);
+
         RefreshToken refreshToken = RefreshToken.builder()
-                .user(userRepository.findById(userId).get())
-                .expiryDate(Instant.now().plusMillis(refreshTokenDurationMs))
+                .user(userRepository.findById(userId).orElseThrow(() -> new EntityNotFoundException("User not found")))
                 .token(UUID.randomUUID().toString())
+                .expiryDate(Instant.now().plusMillis(refreshTokenDurationMs))
                 .build();
 
         return refreshTokenRepository.save(refreshToken);

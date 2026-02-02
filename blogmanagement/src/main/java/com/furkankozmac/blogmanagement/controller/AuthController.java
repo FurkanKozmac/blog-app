@@ -25,7 +25,6 @@ public class AuthController {
 
     private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
-    private final RefreshTokenRepository refreshTokenRepository;
     private final RefreshTokenService refreshTokenService;
     private final PasswordEncoder encoder;
     private final JwtUtil jwtUtils;
@@ -67,7 +66,7 @@ public class AuthController {
         User user = userRepository.findByUsername(userDetails.getUsername()).orElseThrow();
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
 
-        return ResponseEntity.ok(new JwtResponse(accessToken, refreshToken.getToken()));
+        return ResponseEntity.ok(new JwtResponse(accessToken, refreshToken.getToken(), user.getRole().name(), user.getUsername()));
     }
 
     // 3. REFRESH TOKEN
@@ -76,11 +75,17 @@ public class AuthController {
         String requestToken = request.getRefreshToken();
 
         return refreshTokenService.findByToken(requestToken)
-                .map(refreshTokenService::verifyExpiration) // This throws exception if expired
-                .map(RefreshToken::getUser)
-                .map(user -> {
+                .map(refreshTokenService::verifyExpiration)
+                .map(token -> {
+                    User user = token.getUser();
                     String newAccessToken = jwtUtils.generateToken(user.getUsername());
-                    return ResponseEntity.ok(new JwtResponse(newAccessToken, requestToken));
+
+                    return ResponseEntity.ok(new JwtResponse(
+                            newAccessToken,
+                            requestToken,
+                            user.getRole().name(),
+                            user.getUsername()
+                    ));
                 })
                 .orElseThrow(() -> new RuntimeException("Refresh token is not in database!"));
     }

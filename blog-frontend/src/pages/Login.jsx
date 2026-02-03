@@ -24,7 +24,7 @@ const Login = () => {
       navigate("/");
       window.location.reload();
     } catch (err) {
-      alert("Giriş başarısız! " + err);
+      alert("Giriş başarısız! ");
     }
   };
 

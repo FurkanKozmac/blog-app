@@ -16,8 +16,7 @@ const Register = () => {
       alert("Kayıt başarılı! Şimdi giriş yapabilirsiniz.");
       navigate("/login");
     } catch (err) {
-      // Hata mesajını backend'den gelen mesajla gösterelim
-      setError(err.response?.data || "Kayıt sırasında bir hata oluştu.");
+      setError("Kayıt sırasında bir hata oluştu.");
     }
   };
 

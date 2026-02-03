@@ -2,6 +2,7 @@ package com.furkankozmac.blogmanagement.mapper;
 
 import com.furkankozmac.blogmanagement.dto.PostResponse;
 import com.furkankozmac.blogmanagement.entity.Post;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.time.ZoneOffset;
@@ -11,13 +12,15 @@ import java.util.stream.Collectors;
 @Component
 public class PostMapper {
 
+    @Value("${app.backend-url}")
+    private String backendUrl;
+
     public PostResponse toPostResponse(Post post) {
         if (post == null) return null;
 
-        // Resim varsa tam URL oluştur, yoksa null bırak
         String imageUrl = null;
         if (post.getImageName() != null) {
-            imageUrl = "http://localhost:8080/uploads/" + post.getImageName();
+            imageUrl = backendUrl + "/uploads/" + post.getImageName();
         }
 
         return PostResponse.builder()
@@ -26,7 +29,7 @@ public class PostMapper {
                 .content(post.getContent())
                 .authorName(post.getUser().getUsername())
                 .categoryName(post.getCategory() != null ? post.getCategory().getName() : "Genel")
-                .imageUrl(imageUrl) // DTO'daki yeni alan
+                .imageUrl(imageUrl) 
                 .createdAt(post.getCreatedAt().toInstant(ZoneOffset.UTC))
                 .build();
     }

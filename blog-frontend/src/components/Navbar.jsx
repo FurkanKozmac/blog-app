@@ -50,7 +50,7 @@ const Navbar = () => {
         to="/"
         className="text-2xl font-black text-blue-600 tracking-tighter"
       >
-        F<span className="text-gray-800">K hub</span>
+        FK<span className="text-gray-800"> space</span>
       </Link>
 
       <div className="flex-1 max-w-sm mx-8 hidden sm:block">

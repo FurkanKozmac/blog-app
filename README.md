@@ -95,11 +95,20 @@ Uygulama başarıyla başladıktan sonra:
 
 ## 📸 Ekran Görüntüleri
 
-| Ana Sayfa | Admin Dashboard | Yazı Detay & Yorumlar |
-|---------|----------------|----------------------|
-| | <img src="./screenshots/mainpage.png" width="300"/> | <img src="./screenshots/health-monitor.png" width="300"/> | <img src="./screenshots/create-content.png" width="300"/> |
+### 🏠 Ana Sayfa
+<img src="./screenshots/mainpage.png" width="600"/>
 
-> Not: Bu görselleri kendi GitHub repository’ndeki gerçek ekran görüntüleri ile değiştirmen önerilir.
+### 🛠 Admin Dashboard
+<img src="./screenshots/health-monitor.png" width="600"/>
+
+### ✍️ İçerik / Yazı Oluşturma
+<img src="./screenshots/create-content.png" width="600"/>
+
+### 🔐 Giriş Ekranı
+<img src="./screenshots/login.png" width="600"/>
+
+### 📝 Kayıt Ekranı
+<img src="./screenshots/register.png" width="600"/>
 
 ---
 
